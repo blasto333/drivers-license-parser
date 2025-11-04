@@ -15,6 +15,7 @@ final class DriversLicenseParser
     {
         $result = [
             'first_name' => null,
+            'middle_name' => null,
             'last_name' => null,
             'address_1' => null,
             'address_2' => null,
@@ -85,6 +86,7 @@ final class DriversLicenseParser
         }
 
         $result['first_name'] = self::normalizeText($first_name);
+        $result['middle_name'] = self::normalizeText($middle_name);
         $result['last_name']  = self::normalizeText($last_name);
         $result['address_1']  = self::normalizeText(self::extractField($input, ['DAG']));
         $result['address_2']  = self::normalizeText(self::extractField($input, ['DAH']));
