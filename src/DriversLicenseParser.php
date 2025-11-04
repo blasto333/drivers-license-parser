@@ -10,7 +10,7 @@ final class DriversLicenseParser
      * Returns an associative array with keys:
      * first_name, last_name, address_1, address_2, city, state, zip, country, license_number, dob_iso
      */
-    public static function parse(?string $input): array
+    public static function parse(?string $input): bool|array
     {
         $result = [
             'first_name' => null,
