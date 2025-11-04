@@ -14,6 +14,7 @@ final class DriversLicenseParserTest extends TestCase
 
         $parsed = DriversLicenseParser::parse($raw);
 
+		
         $this->assertSame('JOHN', $parsed['first_name']);
         $this->assertSame('DOE', $parsed['last_name']);
         $this->assertSame('123 MAIN ST', $parsed['address_1']);
@@ -26,11 +27,10 @@ final class DriversLicenseParserTest extends TestCase
         $this->assertSame('1990-01-02', $parsed['dob_iso']);
     }
 
-    public function testNonDlTextReturnsNulls(): void
-    {
-        $parsed = DriversLicenseParser::parse(\"just a random string that is not a DL\");
-        $this->assertNull($parsed['first_name']);
-        $this->assertNull($parsed['license_number']);
-        $this->assertNull($parsed['dob_iso']);
-    }
+	public function testNonDLReturnsFalse(): void
+	{
+	    $parsed = DriversLicenseParser::parse("just a random string that is not a DL");
+		
+	    $this->assertFalse($parsed);
+	}
 }
