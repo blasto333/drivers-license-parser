@@ -1,0 +1,29 @@
+{
+  "name": "blasto333/drivers-license-parser",
+  "description": "Robust AAMVA-like driver's license parser with a single public parse() method.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "blasto333"
+    }
+  ],
+  "require": {
+    "php": ">=7.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "blasto333\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "blasto333\\Tests\\": "tests/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
