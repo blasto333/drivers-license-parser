@@ -26,12 +26,27 @@ final class DriversLicenseParser
         ];
 
         if ($input === null) {
-            return $result;
+            return FALSE;
         }
         $input = trim((string)$input);
         if ($input === '') {
-            return $result;
+            return FALSE;
         }
+		
+	    $indicators = ['ANSI', 'DAQ', 'DL', '@', 'DBB', 'D8', 'DCS', 'DAG', 'DAA'];
+	    $looks_like_dl = false;
+	    foreach ($indicators as $i) {
+	        if (stripos($input, $i) !== false) {
+	            $looks_like_dl = true;
+	            break;
+	        }
+	    }
+
+	    if (!$looks_like_dl) 
+		{
+	        return false;
+	    }
+		
 
         // Normalize lines and separators
         $input = preg_replace("/\r\n?/", "\n", $input);
