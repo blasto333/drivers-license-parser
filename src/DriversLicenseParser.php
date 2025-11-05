@@ -314,6 +314,12 @@ final class DriversLicenseParser
                 $value = self::trimConcatenated(self::normalizeText($m[1]));
                 if ($value !== null) return $value;
             }
+
+            $legacyInline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*[DZ][A-Z]{2}))/';
+            if (preg_match($legacyInline, $normalized, $m)) {
+                $value = self::trimConcatenated(self::normalizeText($m[1]));
+                if ($value !== null) return $value;
+            }
         }
         return null;
     }

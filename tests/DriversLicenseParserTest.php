@@ -274,4 +274,23 @@ DATA;
         $this->assertSame('000000006', $parsed['license_number']);
         $this->assertSame('1986-07-16', $parsed['dob_iso']);
     }
+
+    public function testConcatenatedUppercaseFieldsStillParse(): void
+    {
+        $raw = 'ANSI SAMPLE DCS' . str_repeat('Q', 30) . 'DAC' . str_repeat('R', 30) . 'DBB19900102';
+
+        $parsed = DriversLicenseParser::parse($raw);
+
+        $this->assertSame(str_repeat('R', 30), $parsed['first_name']);
+        $this->assertNull($parsed['middle_name']);
+        $this->assertSame(str_repeat('Q', 30), $parsed['last_name']);
+        $this->assertNull($parsed['address_1']);
+        $this->assertNull($parsed['address_2']);
+        $this->assertNull($parsed['city']);
+        $this->assertNull($parsed['state']);
+        $this->assertNull($parsed['zip']);
+        $this->assertNull($parsed['country']);
+        $this->assertNull($parsed['license_number']);
+        $this->assertSame('1990-01-02', $parsed['dob_iso']);
+    }
 }
