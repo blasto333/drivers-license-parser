@@ -309,7 +309,7 @@ final class DriversLicenseParser
                 if ($value !== null) return $value;
             }
 
-            $inline = '/' . preg_quote($code, '/') . '([^\r\n]*)(?=(?:\r?\n|\s*[DZ][A-Z]{2}))/';
+            $inline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*(?<![A-Z])[DZ][A-Z]{2}))/';
             if (preg_match($inline, $normalized, $m)) {
                 $value = self::trimConcatenated(self::normalizeText($m[1]));
                 if ($value !== null) return $value;
