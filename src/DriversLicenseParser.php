@@ -5,6 +5,14 @@ namespace blasto333;
 
 final class DriversLicenseParser
 {
+    private const CONCAT_FIELD_CODES = [
+        'DAA','DAB','DAC','DAD','DAG','DAH','DAI','DAJ','DAK','DAQ','DAU','DAV','DAW','DAY','DAZ',
+        'DBA','DBB','DBC','DBD','DBE','DBF','DBG','DBH','DBJ','DBK','DBL','DBM','DBN','DBO','DBP','DBQ','DBR','DBS','DBT','DBU','DBV','DBW','DBX','DBY','DBZ',
+        'DCA','DCB','DCC','DCD','DCE','DCF','DCG','DCH','DCI','DCJ','DCK','DCL','DCM','DCN','DCO','DCP','DCQ','DCR','DCS','DCT',
+        'DDA','DDB','DDC','DDD','DDE','DDF','DDG','DDH','DDI','DDJ','DDK','DDL','DDM','DDN','DDO','DDP','DDQ','DDR','DDS','DDT','DDU','DDV','DDW','DDX','DDY','DDZ',
+        'DE0','DEL','DL0','DLD','DLR','DMO','D8','D8A',
+        'ZNB','ZNC','ZND','ZNE','ZNF','ZNG','ZNH','ZNI',
+    ];
     /**
      * Single public API: parse raw DL string into normalized fields.
      * Returns an associative array with keys:
@@ -285,14 +293,118 @@ final class DriversLicenseParser
         return $y;
     }
 
-    private static function trimConcatenated($v)
+    private static function trimConcatenated($v, ?array $stopCodes = null)
     {
         if ($v === null) return null;
         if (!is_string($v)) return $v;
-        return $v === '' ? null : $v;
+        $v = $v === '' ? null : $v;
+        if ($v === null) {
+            return null;
+        }
+
+        $codes = $stopCodes ?: self::CONCAT_FIELD_CODES;
+
+        do {
+            $cutPosition = null;
+            $cutCode = null;
+            foreach ($codes as $code) {
+                $pos = strpos($v, $code);
+                if ($pos === false || $pos === 0) {
+                    continue;
+                }
+                if (!self::shouldTrimAt($v, $pos, $code)) {
+                    continue;
+                }
+                if ($cutPosition === null || $pos < $cutPosition || ($pos === $cutPosition && self::codePriority($code) < self::codePriority($cutCode))) {
+                    $cutPosition = $pos;
+                    $cutCode = $code;
+                }
+            }
+
+            if ($cutPosition === null) {
+                break;
+            }
+
+            $trimmed = rtrim(substr($v, 0, $cutPosition));
+            if ($trimmed === '') {
+                return null;
+            }
+            if ($trimmed === $v) {
+                break;
+            }
+            $v = $trimmed;
+        } while (true);
+
+        return $v;
     }
 
-    private static function extractField($input, array $codes)
+    private static function codePriority(?string $code): int
+    {
+        if ($code === null) {
+            return PHP_INT_MAX;
+        }
+
+        $prefix = substr($code, 0, 2);
+        $priorities = [
+            'DB' => 0,
+            'DC' => 1,
+            'DD' => 2,
+            'DE' => 3,
+            'DL' => 4,
+            'DM' => 5,
+            'DZ' => 6,
+            'DA' => 7,
+        ];
+
+        return $priorities[$prefix] ?? 10;
+    }
+
+    private static function shouldTrimAt(string $value, int $pos, string $code): bool
+    {
+        $before = substr($value, 0, $pos);
+        if ($before === '') {
+            return false;
+        }
+
+        $forceCodes = [
+            'DAK','DAQ','DBA','DBB','DBC','DBD','DBE','DBF','DBG','DBH','DBJ','DBK','DBL','DBM','DBN','DBO','DBP','DBQ','DBR','DBS','DBT','DBU','DBV','DBW','DBX','DBY','DBZ',
+            'DCF','DCG','DCH','DCI','DCJ','DCK','DCL','DCM','DCN','DCO','DCP','DCQ','DCR','DDA','DDB','DDC','DDD','DDE','DDF','DDG','DDH','DDI','DDJ','DDK','DDL','DDM','DDN','DDO','DDP','DDQ','DDR','DDS','DDT','DDU','DDV','DDW','DDX','DDY','DDZ',
+            'DE0','DEL','DL0','DLD','DLR','DMO','D8','D8A','ZNB','ZNC','ZND','ZNE','ZNF','ZNG','ZNH','ZNI',
+        ];
+        if (in_array($code, $forceCodes, true)) {
+            return true;
+        }
+
+        $prefix = substr($code, 0, 2);
+        if ($prefix !== 'DA') {
+            return true;
+        }
+
+        $before = rtrim($before);
+        if ($before === '') {
+            return false;
+        }
+
+        if (preg_match('/[^A-Z]/', $before)) {
+            return true;
+        }
+
+        $exceptions = ['MC', 'MAC'];
+        $upper = strtoupper($before);
+        foreach ($exceptions as $ex) {
+            if (substr($upper, -strlen($ex)) === $ex) {
+                return false;
+            }
+        }
+
+        if (strlen($before) >= 3) {
+            return true;
+        }
+
+        return true;
+    }
+
+    private static function extractField($input, array $codes, ?array $stopCodes = null)
     {
         if (!$codes) return null;
 
@@ -305,19 +417,19 @@ final class DriversLicenseParser
         foreach ($codes as $code) {
             $line = '/^\s*' . preg_quote($code, '/') . '([^\n]*)$/m';
             if (preg_match($line, $normalized, $m)) {
-                $value = self::trimConcatenated(self::normalizeText($m[1]));
+                $value = self::trimConcatenated(self::normalizeText($m[1]), $stopCodes);
                 if ($value !== null) return $value;
             }
 
-            $inline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*(?<![A-Z])[DZ][A-Z]{2}))/';
+            $inline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*(?<![A-Z])[DZ][A-Z]{2}|$))/';
             if (preg_match($inline, $normalized, $m)) {
-                $value = self::trimConcatenated(self::normalizeText($m[1]));
+                $value = self::trimConcatenated(self::normalizeText($m[1]), $stopCodes);
                 if ($value !== null) return $value;
             }
 
-            $legacyInline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*[DZ][A-Z]{2}))/';
+            $legacyInline = '/' . preg_quote($code, '/') . '([^\r\n]*?)(?=(?:\r?\n|\s*[DZ][A-Z]{2}|$))/';
             if (preg_match($legacyInline, $normalized, $m)) {
-                $value = self::trimConcatenated(self::normalizeText($m[1]));
+                $value = self::trimConcatenated(self::normalizeText($m[1]), $stopCodes);
                 if ($value !== null) return $value;
             }
         }
